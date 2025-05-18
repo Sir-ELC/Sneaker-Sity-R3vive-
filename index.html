@@ -1,0 +1,114 @@
+<!-- Sneaker Sity Revive - Updated with CSV Export, Dark Mode, PWA, and EmailJS -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sneaker Sity Revive</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#000000" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(135deg, #f6f6f6 0%, #e9e9e9 100%);
+    }
+    .dark body {
+      background: #121212;
+      color: white;
+    }
+    .dark .glass {
+      background: rgba(40, 40, 40, 0.7);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    }
+  </style>
+</head>
+<body>
+  <main class="max-w-4xl mx-auto p-6">
+    <header class="text-center mb-10">
+      <h1 class="text-4xl font-bold">Sneaker Sity Revive</h1>
+      <p class="text-gray-600">Order Calculator & Appointment System</p>
+      <div class="text-right mt-4">
+        <label class="inline-flex items-center cursor-pointer">
+          <span class="mr-2 text-sm text-gray-600">Dark Mode</span>
+          <input type="checkbox" id="darkToggle" class="hidden">
+          <span class="w-10 h-5 bg-gray-300 rounded-full flex items-center p-1">
+            <span class="w-4 h-4 bg-white rounded-full shadow-md transition-transform duration-300 transform"></span>
+          </span>
+        </label>
+      </div>
+    </header>
+    <section class="glass p-6 rounded-xl mb-10">
+      <!-- Calculator and appointment fields (simplified for brevity) -->
+      <input type="text" id="custName" placeholder="Your Name" class="w-full p-2 border rounded mb-2">
+      <input type="tel" id="custPhone" placeholder="Phone Number" class="w-full p-2 border rounded mb-2">
+      <input type="date" id="custDate" class="w-full p-2 border rounded mb-4">
+      <button id="saveAppointment" class="w-full px-4 py-2 bg-black text-white rounded hover:bg-gray-800">Save Appointment</button>
+      <div class="mt-6">
+        <h3 class="text-xl font-medium mb-2">Your Appointments</h3>
+        <div id="appointments"></div>
+        <button id="exportCSV" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Export as CSV</button>
+      </div>
+    </section>
+  </main>
+  <script>
+    emailjs.init("YOUR_PUBLIC_KEY"); // Replace with your public key
+
+    document.getElementById('darkToggle').addEventListener('change', (e) => {
+      document.documentElement.classList.toggle('dark', e.target.checked);
+    });
+
+    document.getElementById('saveAppointment').addEventListener('click', () => {
+      const name = document.getElementById('custName').value;
+      const phone = document.getElementById('custPhone').value;
+      const date = document.getElementById('custDate').value;
+
+      if (!name || !phone || !date) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      const appointment = { name, phone, date };
+      const appointments = JSON.parse(localStorage.getItem('appointments') || "[]");
+      appointments.push(appointment);
+      localStorage.setItem('appointments', JSON.stringify(appointments));
+      renderAppointments();
+
+      // EmailJS send
+      emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", { name, phone, date });
+    });
+
+    function renderAppointments() {
+      const container = document.getElementById('appointments');
+      const appointments = JSON.parse(localStorage.getItem('appointments') || "[]");
+      container.innerHTML = appointments.map(a => `<div>${a.name} - ${a.phone} - ${a.date}</div>`).join('');
+    }
+
+    document.getElementById('exportCSV').addEventListener('click', () => {
+      const appointments = JSON.parse(localStorage.getItem('appointments') || "[]");
+      const csvContent = "data:text/csv;charset=utf-8," +
+        ["Name,Phone,Date", ...appointments.map(a => `${a.name},${a.phone},${a.date}`)].join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvContent));
+      link.setAttribute("download", "appointments.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(() => console.log("SW registered"));
+    }
+
+    renderAppointments();
+  </script>
+</body>
+</html>
